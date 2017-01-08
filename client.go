@@ -15,6 +15,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"os"
+	"bytes"
 )
 
 // Main workhorse method.
@@ -30,6 +31,10 @@ func main() {
 	// Extract the command line args.
 	local_ip_port := args[0]
 	remote_ip_port := args[1]
+
+	// for compilation...
+	fmt.Println("local_ip_port : %d", local_ip_port)
+	fmt.Println("remote_ip_port : %d", remote_ip_port)
 
 	// TODO
 }
