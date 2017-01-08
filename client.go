@@ -12,10 +12,13 @@ $ go run client.go 127.0.0.1:2020 127.0.0.1:7070
 package main
 
 import (
+	"bytes"
 	"encoding/gob"
 	"fmt"
+	"net"
 	"os"
-	"bytes"
+	"strconv"
+	"time"
 )
 
 // Main workhorse method.
@@ -32,16 +35,45 @@ func main() {
 	local_ip_port := args[0]
 	remote_ip_port := args[1]
 
-	// for compilation...
-	fmt.Println("local_ip_port : %d", local_ip_port)
-	fmt.Println("remote_ip_port : %d", remote_ip_port)
-
 	// TODO
+
+	LocalIpAndPort, err := net.ResolveUDPAddr("udp", local_ip_port)
+
+	CheckError(err)
+
+	ServerIpAndPort, err := net.ResolveUDPAddr("udp", remote_ip_port)
+	CheckError(err)
+
+	Conn, err := net.DialUDP("udp", LocalIpAndPort, ServerIpAndPort)
+	CheckError(err)
+
+	defer Conn.Close()
+	i := 0
+	for {
+		msg := strconv.Itoa(i)
+		i++
+		buf := []byte(msg)
+		_, err := Conn.Write(buf)
+		if err != nil {
+			fmt.Println(msg, err)
+		}
+		time.Sleep(time.Second * 1)
+	}
 }
 
+// guess is the number we are going to send
+// returns byte slice/array with the guess converted to sendable state
+// similar to serialization...
 func Marshall(guess uint32) ([]byte, error) {
 	var network bytes.Buffer
 	enc := gob.NewEncoder(&network)
 	err := enc.Encode(guess)
 	return network.Bytes(), err
+}
+
+// TODO reference???   https://varshneyabhi.wordpress.com/2014/12/23/simple-udp-clientserver-in-golang/
+func CheckError(err error) {
+	if err != nil {
+		fmt.Println("Error: ", err)
+	}
 }
