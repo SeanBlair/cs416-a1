@@ -57,14 +57,14 @@ func main() {
 
 	// now read...
 	ServerConn, err := net.ListenUDP("udp", LocalIpAndPort)
-    CheckError(err)
+	CheckError(err)
 
-    //defer ServerConn.Close()
- 
-    buffer := make([]byte, 1024)
+	//defer ServerConn.Close()
 
-    n,addr,err := ServerConn.ReadFromUDP(buffer)
-    fmt.Println("Received ",string(buffer[0:n]), " from ",addr)
+	buffer := make([]byte, 1024)
+
+	n, addr, err := ServerConn.ReadFromUDP(buffer)
+	fmt.Println("Received ", string(buffer[0:n]), " from ", addr)
 
 	// i := 0
 	// for {
