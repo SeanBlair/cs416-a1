@@ -17,8 +17,8 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"strconv"
-	"time"
+	// "strconv"
+	// "time"
 )
 
 // Main workhorse method.
@@ -38,7 +38,6 @@ func main() {
 	// TODO
 
 	LocalIpAndPort, err := net.ResolveUDPAddr("udp", local_ip_port)
-
 	CheckError(err)
 
 	ServerIpAndPort, err := net.ResolveUDPAddr("udp", remote_ip_port)
@@ -47,18 +46,37 @@ func main() {
 	Conn, err := net.DialUDP("udp", LocalIpAndPort, ServerIpAndPort)
 	CheckError(err)
 
-	defer Conn.Close()
-	i := 0
-	for {
-		msg := strconv.Itoa(i)
-		i++
-		buf := []byte(msg)
-		_, err := Conn.Write(buf)
-		if err != nil {
-			fmt.Println(msg, err)
-		}
-		time.Sleep(time.Second * 1)
-	}
+	//defer Conn.Close()
+
+	var guess uint32 = 513
+	buf, err := Marshall(guess)
+	_, err = Conn.Write(buf)
+
+	x := Conn.Close()
+	fmt.Println("the result of Conn.Close() is: %v", x)
+
+	// now read...
+	ServerConn, err := net.ListenUDP("udp", LocalIpAndPort)
+    CheckError(err)
+
+    //defer ServerConn.Close()
+ 
+    buffer := make([]byte, 1024)
+
+    n,addr,err := ServerConn.ReadFromUDP(buffer)
+    fmt.Println("Received ",string(buffer[0:n]), " from ",addr)
+
+	// i := 0
+	// for {
+	// 	msg := strconv.Itoa(i)
+	// 	i++
+	// 	buf := []byte(msg)
+	// 	_, err := Conn.Write(buf)
+	// 	if err != nil {
+	// 		fmt.Println(msg, err)
+	// 	}
+	// 	time.Sleep(time.Second * 1)
+	// }
 }
 
 // guess is the number we are going to send
