@@ -82,14 +82,9 @@ func main() {
 		switch n {
 		case 4:
 			maximum = guess
-			//guess = ComputeGuess(minimum, maximum)
-			// return to loop
 		case 3:
 			minimum = guess
-			//guess = ComputeGuess(minimum, maximum)
-			// return to loop
 		default:
-			// should be done...
 			fmt.Println("Should be the result.....")
 			return
 		}
