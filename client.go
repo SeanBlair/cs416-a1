@@ -18,7 +18,6 @@ import (
 	"math"
 	"net"
 	"os"
-	// "strconv"
 	"time"
 )
 
@@ -48,73 +47,49 @@ func main() {
 	var maximum uint32 = math.MaxUint32
 
 	for {
-
 		var guess uint32 = ComputeGuess(minimum, maximum)
-		fmt.Println("Guess is: ", guess)
 		buf, err := Marshall(guess)
 		CheckError(err)
 
-		// send guess with timeout feature
-
+		// send guess, if timeout, resend
+		// else compute next guess or print result
 		isTimeout := true
 
 		for isTimeout {
 
-			fmt.Println("Guess is: ", guess)
-
 			Conn, err := net.DialUDP("udp", LocalIpAndPort, ServerIpAndPort)
 			CheckError(err)
 			_, err = Conn.Write(buf)
+			Conn.Close()
 
-			x := Conn.Close()
-			fmt.Println("the result of Conn.Close() is: ", x)
-
-			// now read...
-			// TODO: set timeout...
+			// get response
 			ServerConn, err := net.ListenUDP("udp", LocalIpAndPort)
 			CheckError(err)
-
-			fmt.Println("listening.....")
-
 			ServerConn.SetReadDeadline(time.Now().Add(time.Second * 2))
 
 			buffer := make([]byte, 1024)
+			n, _, err := ServerConn.ReadFromUDP(buffer)
 
-			n, addr, err := ServerConn.ReadFromUDP(buffer)
-
+			// timed out
 			if err, ok := err.(net.Error); ok && err.Timeout() {
-				fmt.Println("============================================================")
-				// This was a timeout
-				// //isTimeout = true
-				// fmt.Println("this was a timeout!!!!!!!!")
-				z := ServerConn.Close()
-				fmt.Println("the result of ServerConn.Close() is: ", z)
+				ServerConn.Close()
 
 			} else if err != nil {
-				// This was an error, but not a timeout
-				// TODO
-				fmt.Println("got into the error check of the timeout...")
+				// TODO ????
+				CheckError(err)
 
 			} else {
 				isTimeout = false
 
-				fmt.Println("made it past ServerConn.ReadFromUDP(buffer)")
-				CheckError(err)
-				fmt.Println("Received ", string(buffer[0:n]), " from ", addr, " where the value of n is: ", n)
-
-				y := ServerConn.Close()
-				fmt.Println("the result of ServerConn.Close() is: ", y)
+				ServerConn.Close()
 
 				switch n {
-				case 0:
-					// do nothing???
-					fmt.Println("was the zero case......")
 				case 4:
 					maximum = guess
 				case 3:
 					minimum = guess
 				default:
-					fmt.Println("Should be the result.....")
+					fmt.Println(string(buffer[0:n]))
 					return
 				}
 			}
