@@ -15,6 +15,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"math"
 	"net"
 	"os"
 	// "strconv"
@@ -43,40 +44,57 @@ func main() {
 	ServerIpAndPort, err := net.ResolveUDPAddr("udp", remote_ip_port)
 	CheckError(err)
 
-	Conn, err := net.DialUDP("udp", LocalIpAndPort, ServerIpAndPort)
-	CheckError(err)
+	var minimum uint32 = 0
+	var maximum uint32 = math.MaxUint32
 
-	//defer Conn.Close()
+	// loop here??
 
-	var guess uint32 = 513
-	buf, err := Marshall(guess)
-	_, err = Conn.Write(buf)
+	for {
 
-	x := Conn.Close()
-	fmt.Println("the result of Conn.Close() is: %v", x)
+		Conn, err := net.DialUDP("udp", LocalIpAndPort, ServerIpAndPort)
+		CheckError(err)
 
-	// now read...
-	ServerConn, err := net.ListenUDP("udp", LocalIpAndPort)
-	CheckError(err)
+		//defer Conn.Close()
 
-	//defer ServerConn.Close()
+		var guess uint32 = ComputeGuess(minimum, maximum)
 
-	buffer := make([]byte, 1024)
+		fmt.Println("Guess is: %d", guess)
+		buf, err := Marshall(guess)
+		_, err = Conn.Write(buf)
 
-	n, addr, err := ServerConn.ReadFromUDP(buffer)
-	fmt.Println("Received ", string(buffer[0:n]), " from ", addr)
+		x := Conn.Close()
+		fmt.Println("the result of Conn.Close() is: %v", x)
 
-	// i := 0
-	// for {
-	// 	msg := strconv.Itoa(i)
-	// 	i++
-	// 	buf := []byte(msg)
-	// 	_, err := Conn.Write(buf)
-	// 	if err != nil {
-	// 		fmt.Println(msg, err)
-	// 	}
-	// 	time.Sleep(time.Second * 1)
-	// }
+		// now read...
+		ServerConn, err := net.ListenUDP("udp", LocalIpAndPort)
+		CheckError(err)
+
+		//defer ServerConn.Close()
+
+		buffer := make([]byte, 1024)
+
+		n, addr, err := ServerConn.ReadFromUDP(buffer)
+		fmt.Println("Received ", string(buffer[0:n]), " from ", addr, " where the value of n is: ", n)
+
+		y := ServerConn.Close()
+		fmt.Println("the result of ServerConn.Close() is: %v", y)
+
+		switch n {
+		case 4:
+			maximum = guess
+			//guess = ComputeGuess(minimum, maximum)
+			// return to loop
+		case 3:
+			minimum = guess
+			//guess = ComputeGuess(minimum, maximum)
+			// return to loop
+		default:
+			// should be done...
+			fmt.Println("Should be the result.....")
+			return
+		}
+	}
+
 }
 
 // guess is the number we are going to send
@@ -94,4 +112,9 @@ func CheckError(err error) {
 	if err != nil {
 		fmt.Println("Error: ", err)
 	}
+}
+
+func ComputeGuess(min uint32, max uint32) uint32 {
+	var result uint32 = min + (max-min)/2
+	return result
 }
