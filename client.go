@@ -60,6 +60,8 @@ func main() {
 
 		for isTimeout {
 
+			fmt.Println("Guess is: ", guess)
+
 			Conn, err := net.DialUDP("udp", LocalIpAndPort, ServerIpAndPort)
 			CheckError(err)
 			_, err = Conn.Write(buf)
@@ -76,10 +78,15 @@ func main() {
 
 			ServerConn.SetReadDeadline(time.Now().Add(time.Second * 2))
 
-			if e, ok := err.(net.Error); ok && e.Timeout() {
+			buffer := make([]byte, 1024)
+
+			n, addr, err := ServerConn.ReadFromUDP(buffer)
+
+			if err, ok := err.(net.Error); ok && err.Timeout() {
+				fmt.Println("============================================================")
 				// This was a timeout
-				//isTimeout = true
-				fmt.Println("this was a timeout!!!!!!!!")
+				// //isTimeout = true
+				// fmt.Println("this was a timeout!!!!!!!!")
 				z := ServerConn.Close()
 				fmt.Println("the result of ServerConn.Close() is: ", z)
 
@@ -91,9 +98,6 @@ func main() {
 			} else {
 				isTimeout = false
 
-				buffer := make([]byte, 1024)
-
-				n, addr, err := ServerConn.ReadFromUDP(buffer)
 				fmt.Println("made it past ServerConn.ReadFromUDP(buffer)")
 				CheckError(err)
 				fmt.Println("Received ", string(buffer[0:n]), " from ", addr, " where the value of n is: ", n)
@@ -115,7 +119,6 @@ func main() {
 				}
 			}
 		}
-
 	}
 }
 
