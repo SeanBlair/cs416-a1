@@ -19,7 +19,7 @@ import (
 	"net"
 	"os"
 	// "strconv"
-	// "time"
+	"time"
 )
 
 // Main workhorse method.
@@ -47,54 +47,78 @@ func main() {
 	var minimum uint32 = 0
 	var maximum uint32 = math.MaxUint32
 
-	// loop here??
-
 	for {
 
-		Conn, err := net.DialUDP("udp", LocalIpAndPort, ServerIpAndPort)
-		CheckError(err)
-
-		//defer Conn.Close()
-
 		var guess uint32 = ComputeGuess(minimum, maximum)
-
-		fmt.Println("Guess is: %d", guess)
+		fmt.Println("Guess is: ", guess)
 		buf, err := Marshall(guess)
-		_, err = Conn.Write(buf)
-
-		x := Conn.Close()
-		fmt.Println("the result of Conn.Close() is: %v", x)
-
-		// now read...
-		ServerConn, err := net.ListenUDP("udp", LocalIpAndPort)
 		CheckError(err)
 
-		//defer ServerConn.Close()
+		// send guess with timeout feature
 
-		buffer := make([]byte, 1024)
+		isTimeout := true
 
-		n, addr, err := ServerConn.ReadFromUDP(buffer)
-		fmt.Println("Received ", string(buffer[0:n]), " from ", addr, " where the value of n is: ", n)
+		for isTimeout {
 
-		y := ServerConn.Close()
-		fmt.Println("the result of ServerConn.Close() is: %v", y)
+			Conn, err := net.DialUDP("udp", LocalIpAndPort, ServerIpAndPort)
+			CheckError(err)
+			_, err = Conn.Write(buf)
 
-		switch n {
-		case 4:
-			maximum = guess
-		case 3:
-			minimum = guess
-		default:
-			fmt.Println("Should be the result.....")
-			return
+			x := Conn.Close()
+			fmt.Println("the result of Conn.Close() is: ", x)
+
+			// now read...
+			// TODO: set timeout...
+			ServerConn, err := net.ListenUDP("udp", LocalIpAndPort)
+			CheckError(err)
+
+			fmt.Println("listening.....")
+
+			ServerConn.SetReadDeadline(time.Now().Add(time.Second * 2))
+
+			if e, ok := err.(net.Error); ok && e.Timeout() {
+				// This was a timeout
+				//isTimeout = true
+				fmt.Println("this was a timeout!!!!!!!!")
+				z := ServerConn.Close()
+				fmt.Println("the result of ServerConn.Close() is: ", z)
+
+			} else if err != nil {
+				// This was an error, but not a timeout
+				// TODO
+				fmt.Println("got into the error check of the timeout...")
+
+			} else {
+				isTimeout = false
+
+				buffer := make([]byte, 1024)
+
+				n, addr, err := ServerConn.ReadFromUDP(buffer)
+				fmt.Println("made it past ServerConn.ReadFromUDP(buffer)")
+				CheckError(err)
+				fmt.Println("Received ", string(buffer[0:n]), " from ", addr, " where the value of n is: ", n)
+
+				y := ServerConn.Close()
+				fmt.Println("the result of ServerConn.Close() is: ", y)
+
+				switch n {
+				case 0:
+					// do nothing???
+					fmt.Println("was the zero case......")
+				case 4:
+					maximum = guess
+				case 3:
+					minimum = guess
+				default:
+					fmt.Println("Should be the result.....")
+					return
+				}
+			}
 		}
-	}
 
+	}
 }
 
-// guess is the number we are going to send
-// returns byte slice/array with the guess converted to sendable state
-// similar to serialization...
 func Marshall(guess uint32) ([]byte, error) {
 	var network bytes.Buffer
 	enc := gob.NewEncoder(&network)
