@@ -15,6 +15,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"log"
 	"math"
 	"net"
 	"os"
@@ -35,31 +36,31 @@ func main() {
 	local_ip_port := args[0]
 	remote_ip_port := args[1]
 
-	// TODO
-
 	LocalIpAndPort, err := net.ResolveUDPAddr("udp", local_ip_port)
 	CheckError(err)
-
 	ServerIpAndPort, err := net.ResolveUDPAddr("udp", remote_ip_port)
 	CheckError(err)
 
 	var minimum uint32 = 0
 	var maximum uint32 = math.MaxUint32
 
+	// Find the "fortune" using binary search
 	for {
 		var guess uint32 = ComputeGuess(minimum, maximum)
 		buf, err := Marshall(guess)
 		CheckError(err)
 
-		// send guess, if timeout, resend
+		// Send guess to server
+		// if timeout, resend until receive response
 		// else compute next guess or print result
 		isTimeout := true
 
 		for isTimeout {
-
+			// send guess
 			Conn, err := net.DialUDP("udp", LocalIpAndPort, ServerIpAndPort)
 			CheckError(err)
 			_, err = Conn.Write(buf)
+			CheckError(err)
 			Conn.Close()
 
 			// get response
@@ -75,14 +76,14 @@ func main() {
 				ServerConn.Close()
 
 			} else if err != nil {
-				// TODO ????
 				CheckError(err)
 
 			} else {
 				isTimeout = false
-
 				ServerConn.Close()
 
+				// n = length of response
+				// 4 == "high", 3 == "low", else variable length "fortune"
 				switch n {
 				case 4:
 					maximum = guess
@@ -104,13 +105,14 @@ func Marshall(guess uint32) ([]byte, error) {
 	return network.Bytes(), err
 }
 
-// TODO reference???   https://varshneyabhi.wordpress.com/2014/12/23/simple-udp-clientserver-in-golang/
+// If error exists, prints error message and exits program
 func CheckError(err error) {
 	if err != nil {
-		fmt.Println("Error: ", err)
+		log.Fatal("ERROR: ", err)
 	}
 }
 
+// Returns the floor of the midpoint between min and max
 func ComputeGuess(min uint32, max uint32) uint32 {
 	var result uint32 = min + (max-min)/2
 	return result
